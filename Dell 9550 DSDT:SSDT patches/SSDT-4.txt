@@ -1,0 +1,23 @@
+# fixing errors
+into_all all  code_regex \\_SB.PCI0.LPCB.H_EC.ECWT\s+\(AC0F\s+\(RefOf\s+\(\\_SB.PCI0.LPCB.H_EC.PENV\)\),\s+\ElseIf\s+\(LAnd\s+\(LEqual\s+\(Local0,\s+Zero\),\s+\LNotEqual\s+\(Local1,\s+Zero\)\)\)\s+\{\s+\\_SB.PCI0.LPCB.H_EC.ECWT\s+\(AC1F\s+\(RefOf\s+\(\\_SB.PCI0.LPCB.H_EC.PENV\)\),\s+Else\s+\{\s+\\_SB.PCI0.LPCB.H_EC.ECWT\s+\(Zero,\s+RefOf\s+\(\\_SB.PCI0.LPCB.H_EC.PENV\)\)\s+\}\)\s+\}\) replace_matched begin
+\\_SB.PCI0.LPCB.H_EC.ECWT (AC0F, RefOf (\\_SB.PCI0.LPCB.H_EC.PENV))\n
+                    }\n
+                    ElseIf (LAnd (LEqual (Local0, Zero), LNotEqual (Local1, Zero)))\n
+                    {\n
+                        \\_SB.PCI0.LPCB.H_EC.ECWT (AC1F, RefOf (\\_SB.PCI0.LPCB.H_EC.PENV))\n
+                    }\n
+                    Else\n
+                    {\n
+                        \\_SB.PCI0.LPCB.H_EC.ECWT (Zero, RefOf (\\_SB.PCI0.LPCB.H_EC.PENV))\n
+end;
+into_all all code_regex Store\s+\(\\\_SB.PCI0.LPCB.H_EC.ECRD,\s+RefOf\s+\(\\\_SB.PCI0.LPCB.H_EC.PLMX\)\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.H_EC.ECRD (RefOf (\\_SB.PCI0.LPCB.H_EC.PLMX)), Local0)
+end;
+into_all all code_regex Store\s+\(\\\_SB.PCI0.LPCB.H_EC.ECRD,\s+RefOf\s+\(\\\_SB.PCI0.LPCB.H_EC.PECH\)\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.H_EC.ECRD (RefOf (\\_SB.PCI0.LPCB.H_EC.PECH)), Local0)
+end;
+into_all all code_regex Store\s+\(\\\_SB.PCI0.LPCB.H_EC.ECRD,\s+RefOf\s+\(\\\_SB.PCI0.LPCB.H_EC.PECL\)\)\s+\Local1 replace_matched begin
+Store (\\_SB.PCI0.LPCB.H_EC.ECRD (RefOf (\\_SB.PCI0.LPCB.H_EC.PECL)), Local1)
+end;
+into_all all code_regex External\s+\(_SB_.PCI0.LPCB.H_EC.ECMT,\s+UnknownObj\) replace_matched begin External (_SB_.PCI0.LPCB.H_EC.ECMT, MethodObj) end;
+into_all all code_regex External\s+\(_SB_.PCI0.LPCB.H_EC.ECRD,\s+IntObj\) replace_matched begin External (_SB_.PCI0.LPCB.H_EC.ECRD, MethodObj) end;

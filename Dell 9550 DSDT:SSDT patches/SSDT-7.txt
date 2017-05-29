@@ -1,0 +1,35 @@
+# Fix errors
+into_all method label P0L6 remove_entry;
+into_all method label P1L6 remove_entry;
+into_all method label P2L6 remove_entry;
+into_all all  code_regex Return\s+\(GPRW\)\s+0x69\s+0x04 replace_matched begin
+Return (GPRW (0x69, 0x04))\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.GGIV,\s+0x0102000F\)\s+\Local0 replace_matched begin
+Store (\\_SB.GGIV (0x0102000F), Local0)\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.GGOV,\s+Arg2\)\s+\Local0 replace_matched begin
+Store (\\_SB.GGOV (Arg2), Local0)\n
+end;
+into_all all  code_regex External\s+\(GPRW,\s+IntObj\) replace_matched begin
+External (GPRW, MethodObj)\n
+end;
+into_all all  code_regex External\s+\(_SB_.GGIV,\s+IntObj\) replace_matched begin
+External (_SB_.GGIV, MethodObj)\n
+end;
+into_all all  code_regex External\s+\(_SB_.GGOV,\s+IntObj\) replace_matched begin
+External (_SB_.GGOV, MethodObj)\n
+end;
+# Rename _DSM
+into_all method label _DSM set_label begin XDSM end;
+# Rename GFX0
+into_all method label GFX0 set_label begin IGPU end;
+into_all all code_regex GFX0 replaceall_matched begin IGPU end;
+into_all all label \_SB.PCI0.GFX0 set_label begin \_SB.PCI0.IGPU end;
+into DefinitionBlock code_regex . insert begin
+External (_SB_.PCI0.PEG0.PEGP._OFF, MethodObj)\n
+end;
+into method label _INI parent_label \_SB.PCI0.PEG0 insert begin
+
+            \_SB.PCI0.PEG0.PEGP._OFF ()\n
+end;

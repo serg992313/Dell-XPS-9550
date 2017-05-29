@@ -1,0 +1,91 @@
+# Fix errors
+into_all all  code_regex OperationRegion\s+\(PCI2,\s+SystemMemory,\s+EBAS\s+\(0x0500\)\,\s+Field\s+\(PCI2,\s+DWordAcc,\s+NoLock,\s+Preserve\)\s+\{\s+\Offset\s+\(0x04\),\s+CMDR,\s+8,\s+VGAR,\s+2000,\s+\Offset\s+\(0x48B\),\s+\,\s+1,\s+NHDA,\s+1\s+\}\) replace_matched begin
+OperationRegion (PCI2, SystemMemory, EBAS, 0x0500)\n
+        Field (PCI2, DWordAcc, NoLock, Preserve)\n
+        {\n
+            Offset (0x04),\n 
+            CMDR,   8,\n 
+            VGAR,   2000,\n 
+            Offset (0x48B),\n 
+                ,   1,\n 
+            NHDA,   1\n
+        }\n
+end;
+into_all all  code_regex OperationRegion\s+\(NVHM,\s+SystemMemory,\s+NVHA\s+\(0x00020400\)\,\s+Field\s+\(NVHM,\s+DWordAcc,\s+NoLock,\s+Preserve\)\s+\{\s+NVSG,\s+128,\s+NVSZ,\s+32,\s+NVVR,\s+32,\s+NVHO,\s+32,\s+RVBS,\s+32,\s+RBF1,\s+262144,\s+RBF2,\s+262144,\s+RBF3,\s+262144,\s+RBF4,\s+262144,\s+MXML,\s+32,\s+MXM3,\s+1600\s+\}\) replace_matched begin
+OperationRegion (NVHM, SystemMemory, NVHA, 0x00020400)\n
+        Field (NVHM, DWordAcc, NoLock, Preserve)\n
+        {\n
+            NVSG,   128,\n 
+            NVSZ,   32,\n
+            NVVR,   32,\n 
+            NVHO,   32,\n 
+            RVBS,   32,\n 
+            RBF1,   262144,\n 
+            RBF2,   262144,\n 
+            RBF3,   262144,\n 
+            RBF4,   262144,\n 
+            MXML,   32,\n 
+            MXM3,   1600\n
+        }\n
+end;
+into_all all  code_regex OperationRegion\s+\(NVIG,\s+SystemMemory,\s+NVGA\s+\(0x45\)\,\s+Field\s+\(NVIG,\s+DWordAcc,\s+NoLock,\s+Preserve\)\s+\{\s+NISG,\s+128,\s+NISZ,\s+32,\s+NIVR,\s+32,\s+GPSS,\s+32,\s+GACD,\s+16,\s+GATD,\s+16,\s+LDES,\s+8,\s+DKST,\s+8,\s+DACE,\s+8,\s+DHPE,\s+8,\s+DHPS,\s+8,\s+SGNC,\s+8,\s+GPPO,\s+8,\s+USPM,\s+8,\s+GPSP,\s+8,\s+TLSN,\s+8,\s+DOSF,\s+8,\s+ELCL,\s+16\s+\}\) replace_matched begin
+OperationRegion (NVIG, SystemMemory, NVGA, 0x45)\n
+        Field (NVIG, DWordAcc, NoLock, Preserve)\n
+        {\n
+            NISG,   128,\n 
+            NISZ,   32,\n
+            NIVR,   32,\n 
+            GPSS,   32,\n 
+            GACD,   16,\n 
+            GATD,   16,\n 
+            LDES,   8,\n 
+            DKST,   8,\n 
+            DACE,   8,\n 
+            DHPE,   8,\n 
+            DHPS,   8,\n 
+            SGNC,   8,\n 
+            GPPO,   8,\n 
+            USPM,   8,\n 
+            GPSP,   8,\n 
+            TLSN,   8,\n 
+            DOSF,   8,\n 
+            ELCL,   16\n
+        }\n
+end;
+into_all all  code_regex  While\s+\(\LNotEqual\s+\(\\_SB.GGIV,\s+0x01010010?\)\)\s+\{\s+One\s+\Sleep\s+\(One\)\s+\}  replace_matched begin 
+While (LNotEqual (\\_SB.GGIV (0x01010010), One))\n
+            {\n
+                Sleep (One)\n
+            }\n
+end;
+into_all all  code_regex  While\s+\(\LNotEqual\s+\(\\_SB.GGIV,\s+0x01010010?\)\)\s+\{\s+Zero\s+\Sleep\s+\(One\)\s+\}  replace_matched begin 
+While (LNotEqual (\\_SB.GGIV (0x01010010), Zero))\n
+            {\n
+                Sleep (One)\n
+            }\n
+end;
+into_all all  code_regex  If\s+\(\LEqual\s+\(\\_SB.GGIV,\s+0x01010010?\)\)\s+\{\s+Zero  replace_matched begin 
+If (LEqual (\\_SB.GGIV (0x01010010), Zero))\n
+            {\n
+end;
+into device label WMI1 remove_entry;
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.KDRT\)\s+PDTS replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.KDRT (Zero), PDTS)\n
+end;
+into_all all  code_regex External\s+\(_SB_.GGIV,\s+UnknownObj\) replace_matched begin
+External (_SB_.GGIV, MethodObj)\n
+end;
+into_all all  code_regex External\s+\(_SB_.PCI0.LPCB.ECDV.KDRT,\s+IntObj\) replace_matched begin
+External (_SB_.PCI0.LPCB.ECDV.KDRT, MethodObj)\n
+end;
+into_all all  code_regex Notify\s+\(\\_SB.PCI0.WMI1,\s+0xD9\) remove_matched;
+# Rename _DSM
+into_all method label _DSM set_label begin XDSM end;
+# Rename GFX0
+into_all method label GFX0 set_label begin IGPU end;
+into_all all code_regex GFX0 replaceall_matched begin IGPU end;
+into_all all label \_SB.PCI0.GFX0 set_label begin \_SB.PCI0.IGPU end;
+
+
+
+

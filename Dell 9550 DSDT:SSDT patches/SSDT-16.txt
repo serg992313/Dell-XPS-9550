@@ -1,0 +1,22 @@
+#Fix errors
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.ECR1,\s+0x32\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.ECR1 (0x32), Local0)\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.ECR1,\s+0x34\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.ECR1 (0x34), Local0)\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.ECR1,\s+0x35\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.ECR1 (0x35), Local0)\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.ECR1,\s+0x36\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.ECR1 (0x36), Local0)\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.ECR1,\s+0x37\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.ECR1 (0x37), Local0)\n
+end;
+into_all all  code_regex Store\s+\(\\_SB.PCI0.LPCB.ECDV.ECR1,\s+0x38\)\s+\Local0 replace_matched begin
+Store (\\_SB.PCI0.LPCB.ECDV.ECR1 (0x38), Local0)\n
+end;
+into_all all  code_regex External\s+\(_SB_.PCI0.LPCB.ECDV.ECR1,\s+IntObj\) replace_matched begin
+External (_SB_.PCI0.LPCB.ECDV.ECR1, MethodObj)\n
+end;

@@ -1,0 +1,17 @@
+# SATA
+into_all method label _DSM set_label begin XDSM end;
+into_all all  code_regex  If\s+\(\LEqual\s+\(\\_SB.GGIV,\s+0x01040001?\)\)\s+\{\s+Zero\s+\\_SB.SGOV\s+\(0x01060001,\s+\One\)\s+\}  replace_matched begin 
+If (LEqual (\\_SB.GGIV (0x01040001), Zero))\n
+                        {\n
+                            \\_SB.SGOV (0x01060001, One)\n
+                        }\n
+end;
+into_all all  code_regex  If\s+\(\LEqual\s+\(\\_SB.GGIV,\s+0x01050000?\)\)\s+\{\s+Zero\s+\\_SB.SGOV\s+\(0x01060001,\s+\One\)\s+\}  replace_matched begin 
+If (LEqual (\\_SB.GGIV (0x01050000), Zero))\n
+                        {\n
+                            \\_SB.SGOV (0x01060001, One)\n
+                        }\n
+end;
+into_all all  code_regex External\s+\(\_SB_.GGIV,\s+UnknownObj\) replace_matched begin
+External (_SB_.GGIV, MethodObj)\n
+end;

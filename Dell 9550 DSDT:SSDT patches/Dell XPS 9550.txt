@@ -1,0 +1,1098 @@
+into method label _DSM parent_adr 0x00170000 remove_entry;
+into_all all code_regex _T_0 replaceall_matched begin T_0 end;
+into_all all code_regex _T_1 replaceall_matched begin T_1 end;
+into_all all code_regex _T_2 replaceall_matched begin T_2 end;
+into_all all code_regex _T_3 replaceall_matched begin T_3 end;
+into_all all code_regex _T_4 replaceall_matched begin T_4 end;
+into_all all code_regex _T_5 replaceall_matched begin T_5 end;
+into_all all code_regex _T_6 replaceall_matched begin T_6 end;
+into_all method label _DSM set_label begin XDSM end;
+into_all method code_regex _DSM replaceall_matched begin XDSM end;
+into method label ADBG replace_content begin Return(0) end;
+into_all all code_regex GFX0\. replaceall_matched begin IGPU. end;
+into_all all code_regex \.GFX0 replaceall_matched begin .IGPU end;
+into_all all code_regex \sGFX0, replaceall_matched begin IGPU, end;
+into_all all code_regex \(GFX0 replaceall_matched begin (IGPU end;
+into_all all label GFX0 set_label begin IGPU end;
+into_all all label _SB.PCI0.GFX0 set_label begin _SB.PCI0.IGPU end;
+into_all all label \_SB.PCI0.GFX0 set_label begin \_SB.PCI0.IGPU end;
+into_all all label _SB.PCI0.GFX0.DD02 set_label begin _SB.PCI0.IGPU.DD02 end;
+into_all all label \_SB.PCI0.GFX0.DD02 set_label begin \_SB.PCI0.IGPU.DD02 end;
+into_all all label ^^^GFX0 set_label begin ^^^IGPU end;
+into_all all label ^^GFX0 set_label begin ^^IGPU end;
+into_all all label ^GFX0 set_label begin ^IGPU end;
+into method label _INI parent_label _SB.PCI0 code_regex  If\s+\(\LIDS\s+\(\^IGPU.GLID\s+\([0]x03]?\)\,\s+\Else\s+\{\s+\^IGPU.GLID\s+\(Zero?\)\s+\}\)\)\s+\{\}  replace_matched begin 
+If (LIDS ())\n
+            {\n
+                ^IGPU.GLID (0x03)\n
+            }\n
+            Else\n
+            {\n
+                ^IGPU.GLID (Zero)\n
+            }\n
+end;
+# some additional fixing
+into method label _STA parent_label EPC replace_content begin
+Return (0x0F)
+end;
+
+#HDEF
+into_all all label HDAS set_label begin HDEF end;
+into_all all code_regex HDAS\. replaceall_matched begin HDEF. end;
+into_all all code_regex HDAS replaceall_matched begin HDEF end;
+into method label XDSM parent_adr 0x001F0003 remove_entry;
+into device name_adr 0x001F0003 insert
+begin
+Method (_DSM, 4, NotSerialized)\n
+    {\n
+        If (LNot (Arg2))\n
+        {\n
+            Return (Buffer (One)\n
+            {\n
+                 0x03\n                                           
+            })\n
+        }\n
+        Store (Package (0x0A)\n
+            {\n
+                "layout-id",\n
+                Buffer (0x04)\n
+                {\n
+                     0x0D, 0x00, 0x00, 0x00\n                       
+                },\n
+                "hda-gfx",\n
+                Buffer (0x0A)\n
+                {\n
+                    "onboard-1"\n
+                },\n
+                "device-type",\n
+                Buffer (0x07)\n
+                {\n
+                    "ALC298"\n
+                },\n
+                "codec-id",\n
+                Buffer (0x04)\n
+                {\n
+                     0x98, 0x02, 0xEC, 0x10\n                     
+                },\n
+                "PinConfigurations",\n
+                Buffer (Zero) {}\n
+            }, Local0)\n
+    }\n
+end;    
+#HPET
+into device label HPET remove_entry;
+into device name_adr 0x001F0000 insert
+begin
+Device (HPET)\n
+{\n
+Name (_HID, EisaId ("PNP0103"))\n
+            Name (_UID, Zero)\n
+Name (_STA, 0x0F)\n
+Name (BUF0, ResourceTemplate ()\n
+          	{\n
+			IRQNoFlags ()\n
+            {0,8,11,15}\n
+            Memory32Fixed (ReadWrite,\n
+                    0xFED00000,\n
+                    0x00000400,\n
+                    )\n
+            })\n
+Method (_CRS, 0, NotSerialized)\n
+{\n
+    Return (BUF0)\n
+}\n
+}\n
+end;
+#AC adaptor
+into_all all label AC set_label begin ADP1 end;
+into_all all code_regex \(AC, replaceall_matched begin (ADP1, end;
+into device name_hid ACPI0003 insert
+begin
+        Name (_PRW, Package (0x02)\n
+        {\n
+            0x18,\n 
+            0x03\n
+        })\n
+end;
+into method label _PCL parent_label ADP1 remove_entry;
+into device label ADP1 insert begin
+Method (_PCL, 0, NotSerialized)\n
+                {\n
+                    Return (Package (0x02)\n
+                    {\n
+                        _SB,\n 
+                        BATC\n 
+                    })\n
+                }\n
+end;
+#   RTC fix
+into device name_hid PNP0B00 code_regex (IO\s\((?:\s*[^,]+,\s*(?:\/\/\s.*)?\s*\n)+\s*)(\dx\d+)(,\s*(?:\/\/\s.*)?\s*\n\s*\)) replace_matched begin %10x02%3 end;
+# IRQ fix
+into device name_hid PNP0000 code_regex IRQNoFlags\s\(\)\n\s+\{(\d+)\} remove_matched;
+into device name_hid PNP0100 code_regex IRQNoFlags\s\(\)\n\s+\{(\d+)\} remove_matched;
+into device name_hid PNP0B00 code_regex IRQNoFlags\s\(\)\n\s+\{(\d+)\} remove_matched;
+into device name_hid PNP0103 code_regex IRQNoFlags\s\(\)\n\s+\{.*\} removeall_matched;
+# Add the missing MCHC device
+into device label MCHC parent_label PCI0 remove_entry;
+into device label PCI0 insert begin
+Device (MCHC)\n
+{\n
+	Name (_ADR, Zero)\n
+}
+end;
+#   SMBUS fix
+into device label BUS0 parent_adr 0x001F0004 remove_entry;
+into device name_adr 0x001F0004 insert
+begin
+Device (BUS0)\n
+{\n
+    Name (_CID, "smbus")\n
+    Name (_ADR, Zero)\n
+    Device (DVL0)\n
+    {\n
+        Name (_ADR, 0x57)\n
+        Name (_CID, "diagsvault")\n
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LEqual (Arg2, Zero)) { Return (Buffer() { 0x03 } ) }\n
+            Return (Package() { "address", 0x57 })\n
+        }\n
+    }\n
+}\n
+end;
+# Add DMAC device
+into device name_adr 0x001F0000 insert 
+begin
+Device (DMAC)\n
+        {\n
+            Name (_HID, EisaId ("PNP0200"))\n
+            Name (_CRS, ResourceTemplate ()\n
+            {\n
+                IO (Decode16,\n
+                    0x0000,\n
+                    0x0000,\n
+                    0x01,\n
+                    0x20,\n
+                    )\n
+                IO (Decode16,\n
+                    0x0081,\n
+                    0x0081,\n
+                    0x01,\n
+                    0x11,\n
+                    )
+                IO (Decode16,\n
+                    0x0093,\n
+                    0x0093,\n
+                    0x01,\n
+                    0x0D,\n
+                    )\n
+                IO (Decode16,\n
+                    0x00C0,\n
+                    0x00C0,\n
+                    0x01,\n
+                    0x20,\n
+                    )\n
+                DMA (Compatibility, NotBusMaster, Transfer8_16, )\n
+                    {4}\n
+            })\n
+        }\n
+end;
+# Add PMCR device
+into device label PCI0 insert begin
+Device (PMCR)\n
+        {\n
+            Name (_ADR, 0x001F0002)\n
+        }\n
+end;
+#Sleep button
+into_all all label SBTN set_label begin SLPB end;
+into_all all code_regex SBTN replaceall_matched begin SLPB end;
+into device label SLPB insert begin
+Name (_STA, 0x0B)\n
+end;
+# LPC fix
+into method label _DSM parent_adr 0x001F0000 remove_entry;
+into device name_adr 0x001F0000 insert
+begin
+Method (_DSM, 4, NotSerialized)\n
+{\n
+    If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+    Return (Package(0x04)\n
+            {\n
+                "device-id",\n 
+                Buffer (0x04)\n
+                {\n
+                     0xC1, 0x9C, 0x00, 0x00\n                         
+                },\n 
+                "compatible",\n 
+                Buffer (0x0D)\n
+                {\n
+                    "pci8086,9cc1"\n
+                }\n
+            })\n
+
+}\n
+end;
+# Battery patch
+into device label BAT0  code_regex  Name\s+\(\_UID\,\s+\One?\)  replace_matched begin 
+Name (_UID, Zero)\n
+end;
+into device label BAT1  code_regex  Name\s+\(\_UID\,\s+0x02?\)  replace_matched begin 
+Name (_UID, Zero)\n
+end;
+into device label BAT0  code_regex  Name\s+\(_HID,\s+\EisaId\s+\("PNP0C0A"\)\) remove_matched;
+into device label BAT1  code_regex  Name\s+\(_HID,\s+\EisaId\s+\("PNP0C0A"\)\) remove_matched;
+into scope label _SB insert 
+begin
+Device (BATC)\n
+        {\n
+            Name (_HID, EisaId ("PNP0C0A"))\n
+            Name (_UID, 0x02)\n
+            Method (CVWA, 3, NotSerialized)\n
+            {\n
+                If (Arg2)\n
+                {\n
+                    Divide (Multiply (Arg0, 0x03E8), Arg1, , Arg0)\n
+                }\n
+               Return (Arg0)\n
+            }\n
+            Method (_STA, 0, NotSerialized)\n
+            {\n
+                Return (Or (^^BAT0._STA (), ^^BAT1._STA ()))\n
+            }\n
+            Name (B0CO, Zero)\n
+            Name (B1CO, Zero)\n
+            Name (B0DV, Zero)\n
+            Name (B1DV, Zero)\n
+            Method (_BST, 0, NotSerialized)\n
+            {\n
+                Store (^^BAT0._BST (), Local0)\n
+                Store (^^BAT0._STA (), Local2)\n
+                If (LEqual (0x1F, Local2))\n
+                {\n
+                    Store (DerefOf (Index (Local0, 0x02)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local2)\n
+                    }\n
+                }\n
+                Store (^^BAT1._BST (), Local1)\n
+                Store (^^BAT1._STA (), Local3)\n
+                If (LEqual (0x1F, Local3))\n
+                {\n
+                    Store (DerefOf (Index (Local1, 0x02)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local3)\n
+                    }\n
+                }\n
+                If (LAnd (LNotEqual (0x1F, Local2), LEqual (0x1F, Local3)))\n
+                {\n
+                    Store (Local1, Local0)\n
+                    Store (Local3, Local2)\n
+                    Store (Zero, Local3)\n
+                }\n
+                If (LAnd (LEqual (0x1F, Local2), LEqual (0x1F, Local3)))\n
+                {\n
+                    Store (DerefOf (Index (Local0, Zero)), Local4)\n
+                    Store (DerefOf (Index (Local1, Zero)), Local5)\n
+                    If (LOr (LEqual (Local4, 0x02), LEqual (Local5, 0x02)))\n
+                    {\n
+                        Store (0x02, Index (Local0, Zero))\n
+                    }\n
+                    ElseIf (LOr (LEqual (Local4, One), LEqual (Local5, One)))\n
+                    {\n
+                        Store (One, Index (Local0, Zero))\n
+                    }\n
+                    ElseIf (LOr (LEqual (Local4, 0x05), LEqual (Local5, 0x05)))\n
+                    {\n
+                        Store (0x05, Index (Local0, Zero))\n
+                    }\n
+                    ElseIf (LOr (LEqual (Local4, 0x04), LEqual (Local5, 0x04)))\n
+                    {\n
+                        Store (0x04, Index (Local0, Zero))\n
+                    }\n
+                    Add (CVWA (DerefOf (Index (Local0, One)), B0DV, B0CO), CVWA (DerefOf (Index (Local1, One)), B1DV, B1CO), Index (Local0, One))\n
+                    Add (CVWA (DerefOf (Index (Local0, 0x02)), B0DV, B0CO), CVWA (DerefOf (Index (Local1, 0x02)), B1DV, B1CO), Index (Local0, 0x02))\n
+                    Divide (Add (DerefOf (Index (Local0, 0x03)), DerefOf (Index (Local1, 0x03))), 0x02, , Index (Local0, 0x03))\n
+                }\n
+                Return (Local0)\n
+            }\n
+            Method (_BIF, 0, NotSerialized)\n
+            {\n
+                Store (^^BAT0._BIF (), Local0)\n
+                Store (^^BAT0._STA (), Local2)\n
+                If (LEqual (0x1F, Local2))\n
+                {\n
+                    Store (DerefOf (Index (Local0, One)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local2)\n
+                    }\n
+                    Store (DerefOf (Index (Local0, 0x02)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local2)\n
+                    }\n
+                    Store (DerefOf (Index (Local0, 0x04)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local2)\n
+                    }\n
+                }\n
+                Store (^^BAT1._BIF (), Local1)\n
+                Store (^^BAT1._STA (), Local3)\n
+                If (LEqual (0x1F, Local3))\n
+                {\n
+                    Store (DerefOf (Index (Local1, One)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local3)\n
+                    }\n
+                    Store (DerefOf (Index (Local1, 0x02)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local3)\n
+                    }\n
+                    Store (DerefOf (Index (Local1, 0x04)), Local4)\n
+                    If (LOr (LNot (Local4), LEqual (Ones, Local4)))\n
+                    {\n
+                        Store (Zero, Local3)\n
+                    }\n
+                }\n
+                If (LAnd (LNotEqual (0x1F, Local2), LEqual (0x1F, Local3)))\n
+                {\n
+                    Store (Local1, Local0)\n
+                    Store (Local3, Local2)\n
+                    Store (Zero, Local3)\n
+                }\n
+                If (LAnd (LEqual (0x1F, Local2), LEqual (0x1F, Local3)))\n
+                {\n
+                    Store (LNot (DerefOf (Index (Local0, Zero))), B0CO)\n
+                    Store (LNot (DerefOf (Index (Local1, Zero))), B1CO)\n
+                    Store (One, Index (Local0, Zero))\n
+                    Store (DerefOf (Index (Local0, 0x04)), B0DV)\n
+                    Store (DerefOf (Index (Local1, 0x04)), B1DV)\n
+                    Add (CVWA (DerefOf (Index (Local0, One)), B0DV, B0CO), CVWA (DerefOf (Index (Local1, One)), B1DV, B1CO), Index (Local0, One))\n
+                    Add (CVWA (DerefOf (Index (Local0, 0x02)), B0DV, B0CO), CVWA (DerefOf (Index (Local1, 0x02)), B1DV, B1CO), Index (Local0, 0x02))\n
+                    Divide (Add (B0DV, B1DV), 0x02, , Index (Local0, 0x04))\n
+                    Add (CVWA (DerefOf (Index (Local0, 0x05)), B0DV, B0CO), CVWA (DerefOf (Index (Local1, 0x05)), B1DV, B1CO), Index (Local0, 0x05))\n
+                    Add (CVWA (DerefOf (Index (Local0, 0x06)), B0DV, B0CO), CVWA (DerefOf (Index (Local1, 0x06)), B1DV, B1CO), Index (Local0, 0x06))\n
+                }\n
+                Return (Local0)\n
+            }\n
+        }\n
+end;        
+# BRT6 - brightness method
+into method label BRT6 remove_entry;       
+into device label IGPU insert begin
+Method (BRT6, 2, NotSerialized)\n
+        {\n
+            If (LEqual (Arg0, One))\n
+            {\n
+                Notify (LCD, 0x86)\n
+                Notify (^^LPCB.PS2K, 0x10)\n
+                Notify (^^LPCB.PS2K, 0x0206)\n
+                Notify (^^LPCB.PS2K, 0x0286)\n
+            }\n
+            If (And (Arg0, 0x02))\n
+            {\n
+                Notify (LCD, 0x87)\n
+                Notify (^^LPCB.PS2K, 0x20)\n
+                Notify (^^LPCB.PS2K, 0x0205)\n
+                Notify (^^LPCB.PS2K, 0x0285)\n
+            }\n
+        }\n
+end;
+# Add MEM2 device
+into device label PCI0 insert begin
+        Device (MEM2)\n
+        {\n
+            Name (_HID, EisaId ("PNP0C01"))\n
+            Name (_UID, 0x02)\n
+            Name (_STA, 0x0F)\n
+            Name (_CRS, ResourceTemplate ()\n
+            {\n
+                Memory32Fixed (ReadWrite,\n
+                    0x20000000,\n
+                    0x00200000,\n
+                    )\n
+                Memory32Fixed (ReadWrite,\n
+                    0x40000000,\n
+                    0x00200000,n
+                    )\n
+            })\n
+        }\n
+end;
+# Fix IMEI
+into_all all label HECI set_label begin IMEI end;
+into method label XDSM parent_adr 0x00160000 remove_entry;
+into device label IMEI insert begin
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+                Return (Package (0x02)\n
+                {\n
+                    "device-id",\n
+                    Buffer (0x04)\n
+                    {\n
+                         0x3A, 0xA1, 0x00, 0x00\n                        
+                    }\n
+                })\n
+            //    Return (Package (0x02)\n
+            //    {\n
+            //        "device-id",\n 
+            //        Buffer (0x04)\n
+            //        {\n
+            //             0x3A, 0x1C, 0x00, 0x00\n                         
+            //        }\n
+            //    })\n
+             }\n
+end;
+# Add _DSM to CPU0
+into scope label _PR.CPU0 insert begin
+Method (_DSM, 4, NotSerialized)\n
+        {\n
+            Store ("Writing plugin-type to Registry!", Debug)\n
+            If (LEqual (Arg2, Zero))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+            Return (Package (0x02)\n
+            {\n
+                "plugin-type",\n 
+                One\n
+            })\n
+        }\n
+end;
+# SATA
+into_all all label SAT0 set_label begin SATA end;
+into_all all code_regex SAT0 replaceall_matched begin SATA end;
+into_all all label _SB.PCI0.SAT0 set_label begin _SB.PCI0.SATA end;
+into_all all label _SB.PCI0.SAT0.PRT1 set_label begin _SB.PCI0.SATA.PRT1 end;
+into device label SATA insert begin
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+                Return (Package(0x04)\n
+            {\n
+                "device-id",\n 
+                Buffer (0x04)\n
+                {\n
+                     0x02, 0xA1, 0x00, 0x00\n                         
+                },\n 
+                "compatible",\n 
+                Buffer (0x0D)\n
+                {\n
+                    "pci8086,a102"\n
+                }\n
+            })\n
+        }\n
+end;
+#GPRW Fix
+into method label GPRW set_label begin XPRW end;
+into Scope label \ insert
+begin
+Method (GPRW, 2, NotSerialized)\n
+    {\n
+        If (LEqual (0x6D, Arg0))\n
+        {\n
+            Return (Package (0x02)\n
+            {\n
+                0x6D,\n
+                Zero\n
+            })\n
+        }\n
+        If (LEqual (0x0D, Arg0))\n
+        {\n
+            Return (Package (0x02)\n
+            {\n
+                0x69,\n
+                Zero\n
+            })\n
+        }\n
+        Return (XPRW (Arg0, Arg1))\n
+    }\n
+end;
+# Add PNLF
+into_all device label PNLF remove_entry;
+into device name_adr 0x00020000 insert
+begin
+Device (PNLF)\n
+{\n
+    // normal PNLF declares (note some of this probably not necessary)\n
+    Name (_ADR, Zero)\n
+    Name (_HID, EisaId ("APP0002"))\n
+    Name (_CID, "backlight")\n
+    Name (_UID, 10)\n
+    Name (_STA, 0x0B)\n
+    // _BCM/_BQC: set/get for brightness level\n
+    Method (_BCM, 1, NotSerialized)\n
+    {\n
+        // Update backlight via existing DSDT methods\n
+        ^^LCD._BCM(Arg0)\n
+    }\n
+    Method (_BQC, 0, NotSerialized)\n
+    {\n
+        Return(^^LCD._BQC())\n
+    }\n
+    Method (_BCL, 0, NotSerialized)\n
+    {\n
+        Return(^^LCD._BCL())\n
+    }\n
+    Method (_DOS, 1, NotSerialized)\n
+    {\n
+        ^^_DOS(Arg0)\n
+    }\n
+    // extended _BCM/_BQC for setting "in between" levels\n
+    Method (XBCM, 1, NotSerialized)\n
+    {\n
+        // Update backlight via existing DSDT methods\n
+        ^^LCD._BCM(Arg0)\n
+    }\n
+    Method (XBQC, 0, NotSerialized)\n
+    {\n
+        Return(^^LCD._BQC())\n
+    }\n
+    // Use XOPT=1 to disable smooth transitions\n
+    Name (XOPT, Zero)\n
+    // XRGL/XRGH: defines the valid range\n
+    Method (XRGL, 0, NotSerialized)\n
+    {\n
+        Store(_BCL(), Local0)\n
+        Store(DerefOf(Index(Local0, 2)), Local0)\n
+        Return(Local0)\n
+    }\n
+    Method (XRGH, 0, NotSerialized)\n
+    {\n
+        Store(_BCL(), Local0)\n
+        Store(DerefOf(Index(Local0, Subtract(SizeOf(Local0), 1))), Local0)\n
+        Return(Local0)\n
+    }\n
+}\n
+end;
+#XHC 
+into method label _PRW parent_label _SB.PCI0.XHC replace_content
+begin
+        Name (_PRW, Package (0x02)\n
+        {\n
+            0x6D,\n 
+            Zero\n
+        })\n
+end;
+into method label XDSM parent_adr 0x00140000 remove_entry;
+into device label XHC insert begin
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+            Store (Package (0x1E)\n
+                {\n
+                    "subsystem-id",\n
+                    Buffer (0x04)\n
+                    {\n
+                         0x70, 0x72, 0x00, 0x00\n                         
+                    },\n
+                    "subsystem-vendor-id",\n 
+                    Buffer (0x04)\n
+                    {\n
+                         0x86, 0x80, 0x00, 0x00\n
+                    },\n
+                    "AAPL,clock-id",\n 
+                    Buffer (One)\n
+                    {\n
+                         0x02\n                                           
+                    },\n
+                    "AAPL,current-available",\n 
+                    Buffer (0x04)\n
+                    {\n
+                         0x34, 0x08, 0x00, 0x00\n                         
+                    },\n
+                    "AAPL,current-in-sleep",\n
+                    Buffer (0x04)\n
+                    {\n
+                         0xE8, 0x03, 0x00, 0x00\n                      
+                    },\n
+                    "AAPL,current-extra",\n 
+                    Buffer (0x04)\n
+                    {\n
+                         0x98, 0x08, 0x00, 0x00\n                        
+                    },\n
+                    "AAPL,current-extra-in-sleep",\n
+                    Buffer (0x04)\n
+                    {\n
+                         0x40, 0x06, 0x00, 0x00\n                        
+                    },\n
+                    "AAPL,max-port-current-in-sleep",\n
+                    Buffer (0x04)\n
+                    {\n
+                         0x34, 0x08, 0x00, 0x00\n                         
+                    },\n
+                    "AAPL,device-internal",\n
+                    Buffer (One)\n
+                    {\n
+                         0x02\n                                      
+                    }\n
+                }, Local0)\n
+             Return (Local0)\n
+        }\n
+end;
+#system_OSYS
+into device label PAGD  remove_entry;
+into_all all code_regex _OSI replaceall_matched begin XOSI end;
+into_all all code_regex OSID replaceall_matched begin OSSD end;
+into method label OSID set_label begin OSSD end;
+into scope label \ insert begin
+Method (XOSI, 1, NotSerialized)\n
+    {\n
+        Store (Package (0x08)\n
+            {\n
+                "Windows",\n
+                "Windows 2001",\n 
+                "Windows 2001 SP2",\n 
+                "Windows 2006",\n
+                "Windows 2006 SP1",\n 
+                "Windows 2006.1",\n
+                "Windows 2009",\n
+                "Windows 2012"\n
+            }, Local0)\n
+        Return (LNotEqual (Ones, Match (Local0, MEQ, Arg0, MTR, Zero, Zero)))\n
+    }\n
+end;
+#ALS device
+into device label ALSD set_label begin ALS0 end;
+# Disable discrete video card
+into DefinitionBlock code_regex . insert begin
+Method (MOFF, 0, NotSerialized)\n
+    {\n
+        If (CondRefOf (\_SB.PCI0.PEG0.PEGP._OFF))\n
+        {\n
+            \_SB.PCI0.PEG0.PEGP._OFF ()\n
+        }\n
+    }\n
+end;
+into DefinitionBlock code_regex . insert begin
+    Method (MON, 0, NotSerialized)\n
+    {\n
+        If (CondRefOf (\_SB.PCI0.PEG0.PEGP._ON))\n
+        {\n
+            \_SB.PCI0.PEG0.PEGP._ON ()\n
+        }\n
+    }\n
+end;
+into DefinitionBlock code_regex . insert begin
+External (_SB_.PCI0.PEG0.PEGP._OFF, MethodObj)\n
+end;
+into DefinitionBlock code_regex . insert begin
+    External (_SB_.PCI0.PEG0.PEGP._ON_, MethodObj)\n
+end;
+into method label _INI parent_label _SB.PCI0 insert begin
+MOFF ()\n
+end;
+into method label _PTS remove_entry;
+into DefinitionBlock code_regex . insert begin
+Method (_PTS, 1, NotSerialized)\n
+    {\n
+        MON ()\n
+        If (Arg0)\n
+        {\n
+        //    PTS (Arg0)\n
+            \_SB.PCI0.LPCB.SPTS (Arg0)\n
+            \_SB.PCI0.NPTS (Arg0)\n
+            RPTS (Arg0)\n
+        }\n
+    }\n
+end;
+into method label _WAK remove_entry;
+into DefinitionBlock code_regex . insert begin
+    Method (_WAK, 1, NotSerialized)\n
+    {\n
+        MOFF ()\n
+        RWAK (Arg0)\n
+        \_SB.PCI0.NWAK (Arg0)\n
+        \_SB.PCI0.LPCB.SWAK (Arg0)\n
+        WAK (Arg0)\n
+        Return (WAKP)\n
+    }\n
+end;
+# Sleep and wake adjusting
+into method label RPTS code_regex  If\s+\(\LEqual\s+\(Arg0,\s+0x03\)\)\s+\{\s+\If\s+\(\CondRefOf\s+\(\\_PR.DTSE\)\)\s+\{\s+\If\s+\(\LAnd\s+\(\\_PR.DTSE,\s+\LGreater\s+\(\TCNT,\s+One\)\)\)\s+\{\s+\TRAP\s+\(0x02,\s+0x1E\)\s+\}\s+\}\s+\} remove_matched;
+# Wifi correction
+into device label PXSX parent_label RP01 set_label begin ARPT end;
+into method label HPME parent_label RP01 code_regex Notify\s+\(PXSX,\s+0x02\) replace_matched begin 
+Notify (ARPT, 0x02)
+end;
+into_all all label _SB.PCI0.RP01.PXSX set_label begin _SB.PCI0.RP01.ARPT end;
+into method label XDSM parent_label PEPD remove_entry;
+# E_42 correction
+into_all all code_regex \\_GPE.\_E42\s+\(\) replace_matched begin 
+\\_GPE.TE42 ()\n
+end;
+into_all all code_regex _E42\s+\(\) replace_matched begin 
+XE42 ()\n
+end;
+into_all all code_regex \\_GPE.\TE42\s+\(\) replace_matched begin 
+\\_GPE._E42 ()\n
+end;
+into scope label _GPE insert begin
+Method (XE42, 0, NotSerialized)\n
+{\n
+            Return (Zero)\n
+            ADBG ("_E42")\n
+            If (LEqual (CF2T, One))\n
+            {\n
+                ADBG ("Clear")\n
+                ADBG ("GPI_GPE_STS")\n
+                \_SB.CAGS (CPGN)\n
+            }\n
+            WWAK ()\n
+            WSUB ()\n
+            If (LEqual (TNAT, One))\n
+            {\n
+                Store (RSMI (), Local0)\n
+                If (LNot (Local0))\n
+                {\n
+                    Return (Zero)\n
+                }\n
+                If (DMSI ())\n
+                {\n
+                    Return (Zero)\n
+                }\n
+            }\n
+            If (GNIS ())\n
+            {\n
+                Return (Zero)\n
+            }\n
+            OperationRegion (SPRT, SystemIO, 0xB2, 0x02)\n
+            Field (SPRT, ByteAcc, Lock, Preserve)\n
+            {\n
+                SSMP,   8\n
+            }\n
+            ADBG ("TBT-HP-Handler")\n
+            ADBG ("PEG WorkAround")\n
+            PGWA ()\n
+            Acquire (OSUM, 0xFFFF)\n
+            Store (TBFF (), Local1)\n
+            If (LEqual (Local1, One))\n
+            {\n
+                Sleep (0x10)\n
+                Release (OSUM)\n
+                ADBG ("OS_Up_Received")\n
+                If (LEqual (DPTF, One))\n
+                {\n
+                    XE42 ()\n
+                }\n
+               Return (Zero)\n
+            }\n
+            If (LEqual (Local1, 0x02))\n
+            {\n
+                NTFY ()\n
+                Sleep (0x10)\n
+                Release (OSUM)\n
+                P8XH (Zero, 0x7D)\n
+                ADBG ("Disconnect")\n
+                Return (Zero)\n
+            }\n
+            If (LEqual (SOHP, One))\n
+            {\n
+                ADBG ("TBT SW SMI")\n
+                Store (TBSW, SSMP)\n
+            }\n
+            NTFY ()\n
+            Sleep (0x10)\n
+            Release (OSUM)\n
+            ADBG ("End-of-_E42")\n
+            }\n
+end;
+# Mutex fixing
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+# MATH correction
+into method label _STA parent_label MATH remove_entry;
+# USB ports
+# fixing DSDT errors
+into device label HS01  set_label begin HTR1 end;
+into device label HS02  set_label begin HTR2 end;
+into scope label _SB.PCI0.XHC.RHUB replace_content begin } end;
+into device label RHUB parent_label XHC insert begin
+            Device (HS11)\n
+            {\n
+                Name (_ADR, 0x0B)\n
+            }\n
+            Device (HS12)\n
+            {\n
+                Name (_ADR, 0x0C)\n
+            }\n
+            Device (HS13)\n
+            {\n
+                Name (_ADR, 0x0D)\n
+            }\n
+            Device (HS14)\n
+            {\n
+                Name (_ADR, 0x0E)\n
+            }\n
+            Device (SS07)\n
+            {\n
+                Method (_ADR, 0, NotSerialized)\n
+                {\n
+                    Return (Add (SSPA (), 0x06))\n
+                }\n
+            }\n
+            Device (SS08)\n
+            {\n
+                Method (_ADR, 0, NotSerialized)\n
+                {\n
+                    Return (Add (SSPA (), 0x07))\n
+                }\n
+            }\n
+            Device (SS09)\n
+            {\n
+                Method (_ADR, 0, NotSerialized)\n
+                {\n
+                    Return (Add (SSPA (), 0x08))\n
+                }\n
+            }\n
+            Device (SS10)\n
+            {\n
+                Method (_ADR, 0, NotSerialized)\n
+                {\n
+                    Return (Add (SSPA (), 0x09))\n
+                }\n
+            }\n
+end;
+# adress correction
+into method label USRA replace_content begin Return (0x0F) end;
+into method label SSPA replace_content begin Return (0x11) end;
+# general correction
+into device label RHUB parent_label XHC insert begin
+Method (GPLD, 2, Serialized)\n
+        {\n
+            Name (PCKG, Package (0x01)\n
+            {\n
+                Buffer (0x10) {}\n
+            })\n
+            CreateField (DerefOf (Index (PCKG, Zero)), Zero, 0x07, REV)\n
+            Store (One, REV)\n
+            CreateField (DerefOf (Index (PCKG, Zero)), 0x40, One, VISI)\n
+            Store (Arg0, VISI)\n
+            CreateField (DerefOf (Index (PCKG, Zero)), 0x57, 0x08, GPOS)\n
+            Store (Arg1, GPOS)\n
+            Return (PCKG)\n
+        }\n
+        Method (GUPC, 1, Serialized)\n
+        {\n
+            Name (PCKG, Package (0x04)\n
+            {\n
+                Zero,\n 
+                0xFF,\n 
+                Zero,\n 
+                Zero\n
+            })\n
+            Store (Arg0, Index (PCKG, Zero))\n
+            Return (PCKG)\n
+        }\n
+end;
+# All USB ports disconnect
+into_all all code_regex Name\s+\(_UPC,\s+Package\s+\(0x04\)\s+\{\s+0xFF,\s+0x03,\s+Zero,\s+Zero\s+\}\) replaceall_matched begin 
+Name (_UPC, Package (0x04)\n
+        {\n
+            Zero,\n 
+            0x03,\n 
+            Zero,\n 
+            Zero\n
+        })\n
+end;
+into device label HTR1 insert begin
+Method (_UPC, 0, NotSerialized)\n
+                    {\n
+                        Return (GUPC (0xFF))\n
+                    }\n
+                    Method (_PLD, 0, NotSerialized)\n
+                    {\n
+                        Return (GPLD (One, One))\n
+                    }\n
+end;
+into device label HS04 insert begin
+        Method (_UPC, 0, NotSerialized)\n
+                    {\n
+                        Return (GUPC (0xFF))\n
+                    }\n
+                    Method (_PLD, 0, NotSerialized)\n
+                    {\n
+                        Return (GPLD (Zero, 0x04))\n
+                    }\n
+end;
+into device label HS12 insert begin
+        Method (_UPC, 0, NotSerialized)\n
+                    {\n
+                        Return (GUPC (0xFF))\n
+                    }\n
+                    Method (_PLD, 0, NotSerialized)\n
+                    {\n
+                        Return (GPLD (Zero, 0x0C))\n
+                    }\n
+end;        
+into device label SS02 insert begin
+        Method (_UPC, 0, NotSerialized)\n
+                    {\n
+                        Return (GUPC (0xFF))\n
+                    }\n
+                    Method (_PLD, 0, NotSerialized)\n
+                    {\n
+                        Return (GPLD (One, 0x02))\n
+                    }\n
+end;
+# USB-C/Thunderbolt - RP15 fixing
+into device label PXSX parent_label RP15 set_label begin TH end;
+into method label _RMV parent_label TH code_regex Return\s+\(Zero\) replace_matched begin 
+Return (One)
+end;
+into device label TH parent_label RP15 set_label begin PXSX end;
+into device label PXSX parent_label RP15 insert begin 
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            Store (Package (0x02)\n
+                {\n
+                    "PCI-Thunderbolt",\n
+                    One\n
+                }, Local0)\n
+            Return (Local0)\n
+        }\n
+        Device (DSB0)\n
+        {\n
+            Name (_ADR, Zero)\n
+        }\n
+        Device (DSB1)\n
+        {\n
+            Name (_ADR, 0x00010000)\n
+        }\n
+        Device (DSB2)\n
+        {\n
+            Name (_ADR, 0x00020000)\n
+            Device (XHC2)\n
+            {\n
+                Name (_ADR, Zero)\n
+                Device (RHUB)\n
+                {\n
+                    Name (_ADR, Zero)\n
+                    Device (SSP1)\n
+                    {\n
+                        Name (_ADR, One)\n
+                        Name (_UPC, Package (0x04)\n
+                        {\n
+                            0xFF,\n 
+                            0x09,\n 
+                            Zero,\n 
+                            Zero\n
+                        })\n
+                        Name (_PLD, Package (0x01)\n
+                        {\n
+                            Buffer (0x10)\n
+                            {\n
+                                /* 0000 */  0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\n
+                                /* 0008 */  0x31, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n 
+                            }\n
+                        })\n
+                    }\n
+                    Device (HS02)\n
+                    {\n
+                        Name (_ADR, 0x02)\n
+                        Name (_UPC, Package (0x04)\n
+                        {\n
+                            Zero,\n 
+                            0x09,\n 
+                            Zero,\n 
+                            Zero\n
+                        })\n
+                        Name (_PLD, Package (0x01)\n
+                        {\n
+                            Buffer (0x10)\n
+                            {\n
+                                /* 0000 */  0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\n
+                                /* 0008 */  0x30, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n 
+                            }\n
+                        })\n
+                    }\n
+                    Device (HS01)\n
+                    {\n
+                        Name (_ADR, 0x03)\n
+                        Name (_UPC, Package (0x04)\n
+                        {\n
+                            Zero,\n 
+                            0x09,\n 
+                            Zero,\n 
+                            Zero\n
+                        })\n
+                        Name (_PLD, Package (0x01)\n
+                        {\n
+                            Buffer (0x10)\n
+                            {\n
+                                /* 0000 */  0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\n
+                                /* 0008 */  0x31, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n 
+                            }\n
+                        })\n
+                    }\n
+                    Device (SSP2)\n
+                    {\n
+                        Name (_ADR, 0x04)\n
+                        Name (_UPC, Package (0x04)\n
+                        {\n
+                            Zero,\n 
+                            0x09,\n 
+                            Zero,\n 
+                            Zero\n
+                        })\n
+                        Name (_PLD, Package (0x01)\n
+                        {\n
+                            Buffer (0x10)\n
+                            {\n
+                                /* 0000 */  0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\n
+                                /* 0008 */  0x31, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00\n 
+                            }\n
+                        })\n
+                    }\n
+                }\n
+            }\n
+        }\n
+end;
+
+        
+
+
+
+
+

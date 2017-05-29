@@ -1,0 +1,7 @@
+# Fix errors
+into_all all  code_regex Store\s+\(\\_SB.GGIV,\s+Arg0\)\s+\Local0 replace_matched begin
+Store (\\_SB.GGIV (Arg0), Local0)\n
+end;
+into_all all  code_regex External\s+\(_SB_.GGIV,\s+IntObj\) replace_matched begin
+External (_SB_.GGIV, MethodObj)\n
+end;
