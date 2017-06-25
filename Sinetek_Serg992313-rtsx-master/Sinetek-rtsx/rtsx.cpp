@@ -348,12 +348,9 @@ rtsx_init(struct rtsx_softc *sc, int attaching)
     
     //---------------------------------------------
     //from Linux driver for rts 525a
-    int err;
-    
-    err = rtsx_write(sc, RTS524A_PM_CTRL3, D3_DELINK_MODE_EN, 0x00);
-    if (err < 0)
-        return err;
-    
+ 
+    RTSX_CLR (sc, RTS524A_PM_CTRL3, 0x00); //additional init rts 525
+
     
     
     rtsx_write_phy(sc, _PHY_FLD0,_PHY_FLD0_CLK_REQ_20C | _PHY_FLD0_RX_IDLE_EN |
@@ -370,20 +367,14 @@ rtsx_init(struct rtsx_softc *sc, int attaching)
         default:;
     }
 	   // /* Correct driving */
- //   RTSX_SET( 0xFD5A, 0x99);
-//    RTSX_SET( 0xFD5E, 0x99);
-//    RTSX_SET(0xFD5F, 0x92);
+    RTSX_SET(sc, 0xFD5A, 0x99);
+    RTSX_SET(sc,  0xFD5E, 0x99);
+    RTSX_SET(sc, 0xFD5F, 0x92);
     
     RTSX_WRITE(sc, PCLK_CTL,  PCLK_MODE_SEL); // case rts525a
     //---------------------------------------------
     //additional initialisation and phisical writing registers for rts525a
   
-    
-    
-
-    
-  
-    
     return (0);
 }
 
@@ -528,7 +519,8 @@ rtsx_bus_power_off(struct rtsx_softc *sc)
    	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL3, RTSX_PULL_CTL_DISABLE3); // 0xD5
 	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL4, RTSX_PULL_CTL_DISABLE4); // 0x55 case rts525a
     
-  
+
+
     
 	return 0;
 }
@@ -539,7 +531,7 @@ rtsx_bus_power_on(struct rtsx_softc *sc)
 //	u_int8_t enable3;
 	
     
-    rtsx_write(sc, LDO_VCC_CFG1, LDO_VCC_TUNE_MASK, LDO_VCC_3V3); //rts525a power on
+    
 	/* Select SD card. */
 	RTSX_WRITE(sc, RTSX_CARD_SELECT, RTSX_SD_MOD_SEL);
 	RTSX_WRITE(sc, RTSX_CARD_SHARE_MODE, RTSX_CARD_SHARE_48_SD);
@@ -551,7 +543,9 @@ rtsx_bus_power_on(struct rtsx_softc *sc)
     RTSX_WRITE(sc, RTSX_CARD_PULL_CTL3, RTSX_PULL_CTL_ENABLE3); // 0xE9
     RTSX_WRITE(sc, RTSX_CARD_PULL_CTL4, RTSX_PULL_CTL_ENABLE4); // case rts525a 0xAA
     
+
     //switch to 3v3 rts525a
+    
     RTSX_WRITE(sc, 0xFF71, 0x07);
     RTSX_WRITE(sc, 0xFDA6,  0);
 	/* rts525a power addition initialisation */
@@ -576,6 +570,7 @@ rtsx_bus_power_on(struct rtsx_softc *sc)
 	
 	/* Full power. */
 	
+    rtsx_write(sc, LDO_VCC_CFG1, LDO_VCC_TUNE_MASK, LDO_VCC_3V3); //rts525a power on
     
         RTSX_CLR(sc, RTSX_CARD_PWR_CTL, RTSX_SD_PWR_OFF);
 	
