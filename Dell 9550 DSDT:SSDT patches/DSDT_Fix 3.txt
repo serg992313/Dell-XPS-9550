@@ -1,0 +1,100 @@
+# LPC fix
+into method label _DSM parent_adr 0x001F0000 remove_entry;
+into device name_adr 0x001F0000 insert
+begin
+Method (_DSM, 4, NotSerialized)\n
+{\n
+    If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+    Return (Package(0x04)\n
+            {\n
+                "device-id",\n 
+                Buffer (0x04)\n
+                {\n
+                     0xC1, 0x9C, 0x00, 0x00\n                         
+                },\n 
+                "compatible",\n 
+                Buffer (0x0D)\n
+                {\n
+                    "pci8086,9cc1"\n
+                }\n
+            })\n
+
+}\n
+end;
+#   SMBUS fix
+into device label BUS0 parent_adr 0x001F0004 remove_entry;
+into device name_adr 0x001F0004 insert
+begin
+Device (BUS0)\n
+{\n
+    Name (_CID, "smbus")\n
+    Name (_ADR, Zero)\n
+    Device (DVL0)\n
+    {\n
+        Name (_ADR, 0x57)\n
+        Name (_CID, "diagsvault")\n
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LEqual (Arg2, Zero)) { Return (Buffer() { 0x03 } ) }\n
+            Return (Package() { "address", 0x57 })\n
+        }\n
+    }\n
+}\n
+end;
+# Add MEM2 device
+into device label PCI0 insert begin
+        Device (MEM2)\n
+        {\n
+            Name (_HID, EisaId ("PNP0C01"))\n
+            Name (_UID, 0x02)\n
+            Name (_STA, 0x0F)\n
+            Name (_CRS, ResourceTemplate ()\n
+            {\n
+                Memory32Fixed (ReadWrite,\n
+                    0x20000000,\n
+                    0x00200000,\n
+                    )\n
+                Memory32Fixed (ReadWrite,\n
+                    0x40000000,\n
+                    0x00200000,n
+                    )\n
+            })\n
+        }\n
+end;
+# Fix IMEI
+into_all all label HECI set_label begin IMEI end;
+into method label XDSM parent_adr 0x00160000 remove_entry;
+into device label IMEI insert begin
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+                Return (Package (0x02)\n
+                {\n
+                    "device-id",\n
+                    Buffer (0x04)\n
+                    {\n
+                         0x3A, 0xA1, 0x00, 0x00\n                        
+                    }\n
+                })\n
+            //    Return (Package (0x02)\n
+            //    {\n
+            //        "device-id",\n 
+            //        Buffer (0x04)\n
+            //        {\n
+            //             0x3A, 0x1C, 0x00, 0x00\n                         
+            //        }\n
+            //    })\n
+             }\n
+end;

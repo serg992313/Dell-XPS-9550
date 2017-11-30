@@ -1,0 +1,37 @@
+into method label _DSM parent_adr 0x00170000 remove_entry;
+into_all all code_regex _T_0 replaceall_matched begin T_0 end;
+into_all all code_regex _T_1 replaceall_matched begin T_1 end;
+into_all all code_regex _T_2 replaceall_matched begin T_2 end;
+into_all all code_regex _T_3 replaceall_matched begin T_3 end;
+into_all all code_regex _T_4 replaceall_matched begin T_4 end;
+into_all all code_regex _T_5 replaceall_matched begin T_5 end;
+into_all all code_regex _T_6 replaceall_matched begin T_6 end;
+into_all method label _DSM set_label begin XDSM end;
+into_all method code_regex _DSM replaceall_matched begin XDSM end;
+into method label ADBG replace_content begin Return(0) end;
+into_all all code_regex GFX0\. replaceall_matched begin IGPU. end;
+into_all all code_regex \.GFX0 replaceall_matched begin .IGPU end;
+into_all all code_regex \sGFX0, replaceall_matched begin IGPU, end;
+into_all all code_regex \(GFX0 replaceall_matched begin (IGPU end;
+into_all all label GFX0 set_label begin IGPU end;
+into_all all label _SB.PCI0.GFX0 set_label begin _SB.PCI0.IGPU end;
+into_all all label \_SB.PCI0.GFX0 set_label begin \_SB.PCI0.IGPU end;
+into_all all label _SB.PCI0.GFX0.DD02 set_label begin _SB.PCI0.IGPU.DD02 end;
+into_all all label \_SB.PCI0.GFX0.DD02 set_label begin \_SB.PCI0.IGPU.DD02 end;
+into_all all label ^^^GFX0 set_label begin ^^^IGPU end;
+into_all all label ^^GFX0 set_label begin ^^IGPU end;
+into_all all label ^GFX0 set_label begin ^IGPU end;
+into method label _INI parent_label _SB.PCI0 code_regex  If\s+\(\LIDS\s+\(\^IGPU.GLID\s+\([0]x03]?\)\,\s+\Else\s+\{\s+\^IGPU.GLID\s+\(Zero?\)\s+\}\)\)\s+\{\}  replace_matched begin 
+If (LIDS ())\n
+            {\n
+                ^IGPU.GLID (0x03)\n
+            }\n
+            Else\n
+            {\n
+                ^IGPU.GLID (Zero)\n
+            }\n
+end;
+# some additional fixing
+into method label _STA parent_label EPC replace_content begin
+Return (0x0F)
+end;

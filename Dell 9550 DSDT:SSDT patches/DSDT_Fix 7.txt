@@ -1,0 +1,154 @@
+# Add _DSM to CPU0
+into scope label _PR.CPU0 insert begin
+Method (_DSM, 4, NotSerialized)\n
+        {\n
+            Store ("Writing plugin-type to Registry!", Debug)\n
+            If (LEqual (Arg2, Zero))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+            Return (Package (0x02)\n
+            {\n
+                "plugin-type",\n 
+                One\n
+            })\n
+        }\n
+end;
+# SATA
+into_all all label SAT0 set_label begin SATA end;
+into_all all code_regex SAT0 replaceall_matched begin SATA end;
+into_all all label _SB.PCI0.SAT0 set_label begin _SB.PCI0.SATA end;
+into_all all label _SB.PCI0.SAT0.PRT1 set_label begin _SB.PCI0.SATA.PRT1 end;
+into device label SATA insert begin
+        Method (_DSM, 4, NotSerialized)\n
+        {\n
+            If (LNot (Arg2))\n
+            {\n
+                Return (Buffer (One)\n
+                {\n
+                     0x03\n                                           
+                })\n
+            }\n
+                Return (Package(0x04)\n
+            {\n
+                "device-id",\n 
+                Buffer (0x04)\n
+                {\n
+                     0x02, 0xA1, 0x00, 0x00\n                         
+                },\n 
+                "compatible",\n 
+                Buffer (0x0D)\n
+                {\n
+                    "pci8086,a102"\n
+                }\n
+            })\n
+        }\n
+end;
+#GPRW Fix
+into method label GPRW set_label begin XPRW end;
+into Scope label \ insert
+begin
+Method (GPRW, 2, NotSerialized)\n
+    {\n
+        If (LEqual (0x6D, Arg0))\n
+        {\n
+            Return (Package (0x02)\n
+            {\n
+                0x6D,\n
+                Zero\n
+            })\n
+        }\n
+        If (LEqual (0x0D, Arg0))\n
+        {\n
+            Return (Package (0x02)\n
+            {\n
+                0x69,\n
+                Zero\n
+            })\n
+        }\n
+        Return (XPRW (Arg0, Arg1))\n
+    }\n
+end;
+
+
+#system_OSYS
+into device label PAGD  remove_entry;
+into_all all code_regex _OSI replaceall_matched begin XOSI end;
+into_all all code_regex OSID replaceall_matched begin OSSD end;
+into method label OSID set_label begin OSSD end;
+into scope label \ insert begin
+Method (XOSI, 1, NotSerialized)\n
+    {\n
+        Store (Package (0x08)\n
+            {\n
+                "Windows",\n
+                "Windows 2001",\n 
+                "Windows 2001 SP2",\n 
+                "Windows 2006",\n
+                "Windows 2006 SP1",\n 
+                "Windows 2006.1",\n
+                "Windows 2009",\n
+                "Windows 2012"\n
+            }, Local0)\n
+        Return (LNotEqual (Ones, Match (Local0, MEQ, Arg0, MTR, Zero, Zero)))\n
+    }\n
+end;
+
+
+# Sleep and wake adjusting
+into method label RPTS code_regex  If\s+\(\LEqual\s+\(Arg0,\s+0x03\)\)\s+\{\s+\If\s+\(\CondRefOf\s+\(\\_PR.DTSE\)\)\s+\{\s+\If\s+\(\LAnd\s+\(\\_PR.DTSE,\s+\LGreater\s+\(\TCNT,\s+One\)\)\)\s+\{\s+\TRAP\s+\(0x02,\s+0x1E\)\s+\}\s+\}\s+\} remove_matched;
+# Wifi correction
+into device label PXSX parent_label RP01 set_label begin ARPT end;
+into method label HPME parent_label RP01 code_regex Notify\s+\(PXSX,\s+0x02\) replace_matched begin 
+Notify (ARPT, 0x02)
+end;
+into_all all label _SB.PCI0.RP01.PXSX set_label begin _SB.PCI0.RP01.ARPT end;
+into method label XDSM parent_label PEPD remove_entry;
+
+# Mutex fixing
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+into_all all code_regex Mutex\s+\(([^,]*),\s+[^)]*\) replaceall_matched begin Mutex(%1, 0) end;
+# MATH correction
+into method label _STA parent_label MATH remove_entry;
+
+
+        
+
+Device (WMTF)
+        {
+            Name (_HID, "PNP0C14")  // _HID: Hardware ID
+            Name (_UID, "TBFP")  // _UID: Unique ID
+            Name (_WDG, Buffer (0x14)
+            {
+                /* 0000 */  0x48, 0xFD, 0xCC, 0x86, 0x5E, 0x20, 0x77, 0x4A,
+                /* 0008 */  0x9C, 0x48, 0x20, 0x21, 0xCB, 0xED, 0xE3, 0x41,
+                /* 0010 */  0x54, 0x46, 0x01, 0x02                         
+            })
+            Method (WMTF, 3, NotSerialized)
+            {
+                CreateByteField (Arg2, Zero, FP)
+                If (FP)
+                {
+                    TBFP (One)
+                }
+                Else
+                {
+                    TBFP (One)
+                }
+            }
+        }
+
+
+
+

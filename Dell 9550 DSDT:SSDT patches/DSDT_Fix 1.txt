@@ -1,0 +1,43 @@
+#HDEF
+into_all all label HDAS set_label begin HDEF end;
+into_all all code_regex HDAS\. replaceall_matched begin HDEF. end;
+into_all all code_regex HDAS replaceall_matched begin HDEF end;
+into method label XDSM parent_adr 0x001F0003 remove_entry;
+into device name_adr 0x001F0003 insert
+begin
+Method (_DSM, 4, NotSerialized)\n
+    {\n
+        If (LNot (Arg2))\n
+        {\n
+            Return (Buffer (One)\n
+            {\n
+                 0x03\n                                           
+            })\n
+        }\n
+        Store (Package (0x0A)\n
+            {\n
+                "layout-id",\n
+                Buffer (0x04)\n
+                {\n
+                     0x0D, 0x00, 0x00, 0x00\n                       
+                },\n
+                "hda-gfx",\n
+                Buffer (0x0A)\n
+                {\n
+                    "onboard-1"\n
+                },\n
+                "device-type",\n
+                Buffer (0x07)\n
+                {\n
+                    "ALC298"\n
+                },\n
+                "codec-id",\n
+                Buffer (0x04)\n
+                {\n
+                     0x98, 0x02, 0xEC, 0x10\n                     
+                },\n
+                "PinConfigurations",\n
+                Buffer (Zero) {}\n
+            }, Local0)\n
+    }\n
+end;  
