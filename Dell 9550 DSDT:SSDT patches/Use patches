@@ -1,7 +1,7 @@
 All these paches are designated for MaciASL.
 - Open original source (DSDT or SSDT, specified in list)
-- Apply patch Dell XPS 9550.txt for DSDT
-- Apply patches SSDT-x for designated SSDT`s
+- Apply patches DSDT..s for DSDT
+- Apply patches SSDT-x for designated SSDT`s ad also copy original SSDT6.aml to patched folder
 - Copy all patched files to Clover/ACPI/Patched folder.
   Don`t use in parallel with additional devices SSDT`s
   Use drop OEM SSDT Key in clover config.plist
