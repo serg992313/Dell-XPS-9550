@@ -180,7 +180,7 @@ int  sdmmc_detach(struct sdmmc_softc *sc, int flags);
 void sdmmc_needs_discover(struct device *self);
 
 //struct sdmmc_chip_functions rtsx_functions = {
-//	/* host controller reset */
+//	/* host controller reset *//
 //	rtsx_host_reset,
 //	/* host controller capabilities */
 //	rtsx_host_ocr,
