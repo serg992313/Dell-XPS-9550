@@ -6,4 +6,4 @@ All these paches are designated for MaciASL.
   Don`t use in parallel with additional devices SSDT`s
   Use drop OEM SSDT Key in clover config.plist
   All paching keys for DSDT from config.plist in Clover shoul be removed.
-These all paching can be use for any kind of BIOS version up to 1.12.25.
+These all paching can be use for any kind of BIOS version up to 1.12.51.
