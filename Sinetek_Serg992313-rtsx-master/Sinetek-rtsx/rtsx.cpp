@@ -1,22 +1,3 @@
-/*	$OpenBSD: rtsx.c,v 1.17 2016/05/06 08:17:13 kettenis Exp $	*/
-
-/*
- * Copyright (c) 2006 Uwe Stuehler <uwe@openbsd.org>
- * Copyright (c) 2012 Stefan Sperling <stsp@openbsd.org>
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
 /*
  * Realtek RTS52xx/RTL84xx Card Reader driver.
  */
@@ -29,6 +10,7 @@
 #include "rtsxvar.h"
 #include "sdmmcvar.h"
 #include "sdmmc_ioreg.h"
+#include "device.h"
 
 /*
  * We use two DMA buffers, a command buffer and a data buffer.
@@ -180,7 +162,7 @@ int  sdmmc_detach(struct sdmmc_softc *sc, int flags);
 void sdmmc_needs_discover(struct device *self);
 
 //struct sdmmc_chip_functions rtsx_functions = {
-//	/* host controller reset *//
+//	/* host controller reset */
 //	rtsx_host_reset,
 //	/* host controller capabilities */
 //	rtsx_host_ocr,
@@ -214,6 +196,7 @@ void sdmmc_needs_discover(struct device *self);
 int
 rtsx_attach(struct rtsx_softc *sc)
 {
+    printf("%s() ===>\n", __func__);
 	u_int32_t sdio_cfg;
 	
 	if (rtsx_init(sc, 1))
@@ -235,9 +218,12 @@ rtsx_attach(struct rtsx_softc *sc)
 	sdmmc_attach(sc);
 	
 	/* Now handle cards discovered during attachment. */
+    printf("%s() sc->flags, RTSX_F_CARD_PRESENT ===>\n", __func__);
 	if (ISSET(sc->flags, RTSX_F_CARD_PRESENT))
 		rtsx_card_insert(sc);
+    printf("%s() sc->flags, RTSX_F_CARD_PRESENT <===\n", __func__);
 	
+    printf("%s() <===\n", __func__);
 	return 0;
 }
 
@@ -249,10 +235,22 @@ rtsx_init(struct rtsx_softc *sc, int attaching)
 	int error;
 	
 	/* Read IC version from dummy register. */
-	
+	if (sc->flags & RTSX_F_5229) {
 		RTSX_READ(sc, RTSX_DUMMY_REG, &version);
-			
-    
+		switch (version & 0x0F) {
+			case RTSX_IC_VERSION_A:
+			case RTSX_IC_VERSION_B:
+			case RTSX_IC_VERSION_D:
+				break;
+			case RTSX_IC_VERSION_C:
+				sc->flags |= RTSX_F_5229_TYPE_C;
+				break;
+			default:
+				printf("rtsx_init: unknown ic %02x\n", version);
+				return (1);
+		}
+	}
+	
 	/* Enable interrupt write-clear (default is read-clear). */
 	RTSX_CLR(sc, RTSX_NFTS_TX_CTRL, RTSX_INT_READ_CLR);
 	
@@ -273,20 +271,17 @@ rtsx_init(struct rtsx_softc *sc, int attaching)
 	IODelay(200);
 	
 	/* XXX magic numbers from linux driver */
+	if (sc->flags & RTSX_F_5209)
+		error = rtsx_write_phy(sc, 0x00, 0xB966);
+	else
+		error = rtsx_write_phy(sc, 0x00, 0xBA42);
+	if (error) {
+		printf("%s: cannot write phy register\n", DEVNAME(sc));
+		return (1);
+	}
 	
-    if (sc->flags & RTSX_F_5209)
-        error = rtsx_write_phy(sc, 0x00, 0xB966);
-    else
-        error = rtsx_write_phy(sc, 0x00, 0xBA42);
-    if (error) {
-        printf("%s: cannot write phy register\n", DEVNAME(sc));
-        return (1);
-    }
 	RTSX_SET(sc, RTSX_CLK_DIV, 0x07);
-    
-    
-  	
-    
+	
 	/* Disable sleep mode. */
 	RTSX_CLR(sc, RTSX_HOST_SLEEP_STATE,
 		 RTSX_HOST_ENTER_S1 | RTSX_HOST_ENTER_S3);
@@ -296,10 +291,7 @@ rtsx_init(struct rtsx_softc *sc, int attaching)
 	
 	RTSX_CLR(sc, RTSX_CHANGE_LINK_STATE,
 		 RTSX_FORCE_RST_CORE_EN | RTSX_NON_STICKY_RST_N_DBG | 0x04);
-	
-    
-    
-    RTSX_WRITE(sc, RTSX_SD30_DRIVE_SEL, RTSX_SD30_DRIVE_SEL_3V3);
+	RTSX_WRITE(sc, RTSX_SD30_DRIVE_SEL, RTSX_SD30_DRIVE_SEL_3V3);
 	
 	/* Enable SSC clock. */
 	RTSX_WRITE(sc, RTSX_SSC_CTL1, RTSX_SSC_8X_EN | RTSX_SSC_SEL_4M);
@@ -317,95 +309,50 @@ rtsx_init(struct rtsx_softc *sc, int attaching)
 	RTSX_SET(sc, RTSX_PETXCFG, RTSX_PETXCFG_CLKREQ_PIN);
 	
 	/* Set up LED GPIO. */
-  
-    RTSX_SET(sc, RTSX_GPIO_CTL, RTSX_GPIO_LED_ON);
-    
-    /* Switch LDO3318 source from DV33 to 3V3. */
-    
-    RTSX_CLR(sc, RTSX_LDO_PWR_SEL, RTSX_LDO_PWR_SEL_DV33);
-    RTSX_SET(sc, RTSX_LDO_PWR_SEL, RTSX_LDO_PWR_SEL_3V3);
-    
-    /* Set default OLT blink period. */
-    
-    RTSX_SET(sc, RTSX_OLT_LED_CTL, RTSX_OLT_LED_PERIOD);
-    
-    ////if version_A
-    switch (version & 0x0F) {
-        case RTSX_IC_VERSION_A:
-            rtsx_write(sc, L1SUB_CONFIG2, L1SUB_AUTO_CFG, L1SUB_AUTO_CFG); // case rts525a
-            rtsx_write(sc, RREF_CFG, RREF_VBGSEL_MASK, RREF_VBGSEL_1V25); // case rts525a
-            rtsx_write(sc, LDO_VIO_CFG, LDO_VIO_TUNE_MASK, LDO_VIO_1V7); // case rts525a
-            rtsx_write(sc, LDO_DV12S_CFG, LDO_D12_TUNE_MASK, LDO_D12_TUNE_DF); // case rts525a
-            rtsx_write(sc, LDO_AV12S_CFG, LDO_AV12S_TUNE_MASK, LDO_AV12S_TUNE_DF); // case rts525a
-            rtsx_write(sc, LDO_VCC_CFG0, LDO_VCC_LMTVTH_MASK, LDO_VCC_LMTVTH_2A); // case rts525a
-            rtsx_write(sc, OOBS_CONFIG, OOBS_AUTOK_DIS | OOBS_VAL_MASK, 0x89); // case rts525a
-            
-            
-            rtsx_write_phy(sc, 0x19,  0x3800 | 0x0100 | 0x0002  );
-            break;
-        default:;
-    }
-    
-    //---------------------------------------------
-    //from Linux driver for rts 525a
- 
-    RTSX_CLR (sc, RTS524A_PM_CTRL3, 0x00); //additional init rts 525
-
-    
-    
-    rtsx_write_phy(sc, _PHY_FLD0,_PHY_FLD0_CLK_REQ_20C | _PHY_FLD0_RX_IDLE_EN |
-                   _PHY_FLD0_BIT_ERR_RSTN | _PHY_FLD0_BER_COUNT |
-                   _PHY_FLD0_BER_TIMER | _PHY_FLD0_CHECK_EN);
-    rtsx_write_phy(sc, _PHY_ANA03, _PHY_ANA03_TIMER_MAX | _PHY_ANA03_OOBS_DEB_EN |
-                   _PHY_CMU_DEBUG_EN);
-    //if version_A
-    switch (version & 0x0F) {
-        case RTSX_IC_VERSION_A:
-            rtsx_write_phy(sc, _PHY_REV0, _PHY_REV0_FILTER_OUT |
-                           _PHY_REV0_CDR_BYPASS_PFD | _PHY_REV0_CDR_RX_IDLE_BYPASS);
-            break;
-        default:;
-    }
-	   // /* Correct driving */
-    RTSX_SET(sc, 0xFD5A, 0x99);
-    RTSX_SET(sc,  0xFD5E, 0x99);
-    RTSX_SET(sc, 0xFD5F, 0x92);
-    
-    RTSX_WRITE(sc, PCLK_CTL,  PCLK_MODE_SEL); // case rts525a
-    //---------------------------------------------
-    //additional initialisation and phisical writing registers for rts525a
-  
-    return (0);
+	if (sc->flags & RTSX_F_5209) {
+		RTSX_WRITE(sc, RTSX_CARD_GPIO, 0x03);
+		RTSX_WRITE(sc, RTSX_CARD_GPIO_DIR, 0x03);
+	} else {
+		RTSX_SET(sc, RTSX_GPIO_CTL, RTSX_GPIO_LED_ON);
+		/* Switch LDO3318 source from DV33 to 3V3. */
+		RTSX_CLR(sc, RTSX_LDO_PWR_SEL, RTSX_LDO_PWR_SEL_DV33);
+		RTSX_SET(sc, RTSX_LDO_PWR_SEL, RTSX_LDO_PWR_SEL_3V3);
+		/* Set default OLT blink period. */
+		RTSX_SET(sc, RTSX_OLT_LED_CTL, RTSX_OLT_LED_PERIOD);
+	}
+	
+	return (0);
 }
 
-//int
-//rtsx_activate(struct device *self, int act)
-//{
-//	struct rtsx_softc *sc = (struct rtsx_softc *)self;
-//	int rv = 0;
-//	
-//	switch (act) {
-//		case DVACT_SUSPEND:
-//			rv = config_activate_children(self, act);
-//			rtsx_save_regs(sc);
-//			break;
-//		case DVACT_RESUME:
-//			rtsx_restore_regs(sc);
-//			
-//			/* Handle cards ejected/inserted during suspend. */
-//			if (READ4(sc, RTSX_BIPR) & RTSX_SD_EXIST)
-//				rtsx_card_insert(sc);
-//			else
-//				rtsx_card_eject(sc);
-//			
-//			rv = config_activate_children(self, act);
-//			break;
-//		default:
-//			rv = config_activate_children(self, act);
-//			break;
-//	}
-//	return (rv);
-//}
+// syscl - implemented rtsx_activate
+int
+rtsx_activate(struct rtsx_softc *self, int act)
+{
+    struct rtsx_softc *sc = (struct rtsx_softc *)self;
+    int ret = 0;
+    
+    switch (act) {
+        case DVACT_SUSPEND:
+            ret = rtsx_activate(self, act);
+            rtsx_save_regs(sc);
+            break;
+        case DVACT_RESUME:
+            rtsx_restore_regs(sc);
+            
+            /* Handle cards ejected/inserted during suspend. */
+            if (READ4(sc, RTSX_BIPR) & RTSX_SD_EXIST)
+                rtsx_card_insert(sc);
+            else
+                rtsx_card_eject(sc);
+            
+            ret = rtsx_activate(sc, act);
+            break;
+        default:
+            ret = rtsx_activate(sc, act);
+            break;
+    }
+    return ret;
+}
 
 int
 rtsx_led_enable(struct rtsx_softc *sc)
@@ -495,7 +442,7 @@ int
 rtsx_bus_power_off(struct rtsx_softc *sc)
 {
 	int error;
-//	u_int8_t disable3;
+	u_int8_t disable3;
 	
 	error = rtsx_stop_sd_clock(sc);
 	if (error)
@@ -505,78 +452,138 @@ rtsx_bus_power_off(struct rtsx_softc *sc)
 	RTSX_CLR(sc, RTSX_CARD_OE, RTSX_CARD_OUTPUT_EN);
 	
 	/* Turn off power. */
-
+	disable3 = RTSX_PULL_CTL_DISABLE3;
+	if (sc->flags & RTSX_F_5209)
+		RTSX_SET(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_OFF);
+	else {
+		RTSX_CLR(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_VCC1 |
+			 RTSX_LDO3318_VCC2);
+		if (sc->flags & RTSX_F_5229_TYPE_C)
+			disable3 = RTSX_PULL_CTL_DISABLE3_TYPE_C;
+	}
 	
-    
-		
 	RTSX_SET(sc, RTSX_CARD_PWR_CTL, RTSX_SD_PWR_OFF);
-    RTSX_CLR(sc, RTSX_PWR_GATE_CTRL, 0x00);
-	RTSX_CLR(sc, RTSX_CARD_PWR_CTL, RTSX_PMOS_STRG_800mA); // Unknown operator
+	RTSX_CLR(sc, RTSX_CARD_PWR_CTL, RTSX_PMOS_STRG_800mA);
 	
 	/* Disable pull control. */
-	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL1, RTSX_PULL_CTL_DISABLE1); // 0x66
-	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL2, RTSX_PULL_CTL_DISABLE2); // 0x55
-   	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL3, RTSX_PULL_CTL_DISABLE3); // 0xD5
-	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL4, RTSX_PULL_CTL_DISABLE4); // 0x55 case rts525a
+	//In for RTS525a
+    //RTSX_WRITE(sc, CARD_PULL_CTL1, 0x66);
+    //RTSX_WRITE(sc, CARD_PULL_CTL2, 0x55);
+    //RTSX_WRITE(sc, CARD_PULL_CTL3, 0xD5);
+    //RTSX_WRITE(sc, CARD_PULL_CTL4, 0x55);
     
-
-
-    
+    //Out for RTS5249
+    RTSX_WRITE(sc, RTSX_CARD_PULL_CTL1, RTSX_PULL_CTL_DISABLE12);
+	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL2, RTSX_PULL_CTL_DISABLE12);
+	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL3, disable3);
+	//---------------------
 	return 0;
 }
 
 int
 rtsx_bus_power_on(struct rtsx_softc *sc)
 {
-//	u_int8_t enable3;
-	
+	u_int8_t enable3;
+    //Serg992313 - Added extrs_init hardware
+    rtsx_write(sc, PCLK_CTL, PCLK_MODE_SEL, PCLK_MODE_SEL);
+    //if (is_version(sc, 0x525A, IC_VER_A)) {
+        rtsx_write(sc, L1SUB_CONFIG2,
+                                L1SUB_AUTO_CFG, L1SUB_AUTO_CFG);
+        rtsx_write(sc, RREF_CFG,
+                                RREF_VBGSEL_MASK, RREF_VBGSEL_1V25);
+        rtsx_write(sc, LDO_VIO_CFG,
+                                LDO_VIO_TUNE_MASK, LDO_VIO_1V7);
+        rtsx_write(sc, LDO_DV12S_CFG,
+                                LDO_D12_TUNE_MASK, LDO_D12_TUNE_DF);
+        rtsx_write(sc, LDO_AV12S_CFG,
+                                LDO_AV12S_TUNE_MASK, LDO_AV12S_TUNE_DF);
+        rtsx_write(sc, LDO_VCC_CFG0,
+                                LDO_VCC_LMTVTH_MASK, LDO_VCC_LMTVTH_2A);
+        rtsx_write(sc, OOBS_CONFIG,
+                                OOBS_AUTOK_DIS | OOBS_VAL_MASK, 0x89);
+    //}
+	//Serg992313- Added optimize for RTS525a
+    int err;
+    err = rtsx_write(sc, RTS524A_PM_CTRL3,
+                                  D3_DELINK_MODE_EN, 0x00);
+    if (err < 0)
+        return err;
     
+    rtsx_write_phy(sc, PHY_FLD0,
+                                _PHY_FLD0_CLK_REQ_20C | _PHY_FLD0_RX_IDLE_EN |
+                                _PHY_FLD0_BIT_ERR_RSTN | _PHY_FLD0_BER_COUNT |
+                                _PHY_FLD0_BER_TIMER | _PHY_FLD0_CHECK_EN);
     
+    rtsx_write_phy(sc, _PHY_ANA03,
+                                _PHY_ANA03_TIMER_MAX | _PHY_ANA03_OOBS_DEB_EN |
+                                _PHY_CMU_DEBUG_EN);
+    
+ //   if (is_version(sc, 0x525A, IC_VER_A))
+        rtsx_write_phy(sc, _PHY_REV0,
+                                 _PHY_REV0_FILTER_OUT | _PHY_REV0_CDR_BYPASS_PFD |
+                                 _PHY_REV0_CDR_RX_IDLE_BYPASS);
+    //-----------------------
+    
+    /* syscl - added RTS525A support here */
+    if (sc->flags & RTSX_F_525A)
+        rtsx_write(sc, RTSX_LDO_VCC_CFG1, RTSX_LDO_VCC_TUNE_MASK,
+                   RTSX_LDO_VCC_3V3);
+    rtsx_write(sc, RTSX_LDO_VCC_CFG1, RTSX_LDO_VCC_TUNE_MASK,
+               RTSX_LDO_VCC_3V3);
 	/* Select SD card. */
 	RTSX_WRITE(sc, RTSX_CARD_SELECT, RTSX_SD_MOD_SEL);
 	RTSX_WRITE(sc, RTSX_CARD_SHARE_MODE, RTSX_CARD_SHARE_48_SD);
 	RTSX_SET(sc, RTSX_CARD_CLK_EN, RTSX_SD_CLK_EN);
 	
 	/* Enable pull control. */
-	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL1, RTSX_PULL_CTL_ENABLE1); // 0x66
-	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL2, RTSX_PULL_CTL_ENABLE2); // 0xAA
-    RTSX_WRITE(sc, RTSX_CARD_PULL_CTL3, RTSX_PULL_CTL_ENABLE3); // 0xE9
-    RTSX_WRITE(sc, RTSX_CARD_PULL_CTL4, RTSX_PULL_CTL_ENABLE4); // case rts525a 0xAA
+    //In RTS 525a
+    //RTSX_WRITE(sc, CARD_PULL_CTL1, 0x66);     //0xFD60 -> 66
+    ///RTSX_WRITE(sc, CARD_PULL_CTL2, 0xAA);     //0xFD61 -> AA
+    //RTSX_WRITE(sc, CARD_PULL_CTL3, 0xE9);     //0xFD62 -> E9
+    //RTSX_WRITE(sc, CARD_PULL_CTL4, 0xAA);     //0xFD63 -> AA
     
-
-    //switch to 3v3 rts525a
-    
-    RTSX_WRITE(sc, 0xFF71, 0x07);
-    RTSX_WRITE(sc, 0xFDA6,  0);
-	/* rts525a power addition initialisation */
-   
-   
-    /*
+	// Out for RTS5229
+    RTSX_WRITE(sc, RTSX_CARD_PULL_CTL1, RTSX_PULL_CTL_ENABLE12);  //0xFD60 -> AA
+	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL2, RTSX_PULL_CTL_ENABLE12);  //0xFD61 -> AA
+	if (sc->flags & RTSX_F_5229_TYPE_C)
+		enable3 = RTSX_PULL_CTL_ENABLE3_TYPE_C;                   //0xFD62 -> D9
+	else
+		enable3 = RTSX_PULL_CTL_ENABLE3;
+	RTSX_WRITE(sc, RTSX_CARD_PULL_CTL3, enable3);                 //0xFD62 -> E9
+	//--------------------
+	/*
 	 * To avoid a current peak, enable card power in two phases with a
 	 * delay in between.
 	 */
 	
 	/* Partial power. */
-    
-    
-    
-    
-	RTSX_SET(sc, RTSX_CARD_PWR_CTL, RTSX_SD_PARTIAL_PWR_ON); //
+	RTSX_SET(sc, RTSX_CARD_PWR_CTL, RTSX_SD_PARTIAL_PWR_ON);
 	
-		
+    //Out
+    /*if (sc->flags & RTSX_F_5209)
+		RTSX_SET(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_SUSPEND);
+	else
+		RTSX_SET(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_VCC1);
+	*/
+    //in
     RTSX_SET(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_VCC1);
-	
-	IODelay(200);
-	
+	//------
+    IODelay(200);
+    
 	/* Full power. */
 	
-    rtsx_write(sc, LDO_VCC_CFG1, LDO_VCC_TUNE_MASK, LDO_VCC_3V3); //rts525a power on
+    //Out
+    /*RTSX_CLR(sc, RTSX_CARD_PWR_CTL, RTSX_SD_PWR_OFF);
+	if (sc->flags & RTSX_F_5209)
+		RTSX_CLR(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_OFF);
+	else
+		RTSX_SET(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_VCC2);
+	*/
+    //In
     
-        RTSX_CLR(sc, RTSX_CARD_PWR_CTL, RTSX_SD_PWR_OFF);
-	
-  
-		RTSX_SET(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_VCC2);  //case rts525a from RTSX_LDO3318_VCC2 to RTSX_LDO3318_VCC4
-	
+    RTSX_CLR(sc, RTSX_CARD_PWR_CTL,     RTSX_SD_PWR_ON);
+    RTSX_CLR(sc, RTSX_PWR_GATE_CTRL, RTSX_LDO3318_VCC2);
+    
 	/* Enable SD card output. */
 	RTSX_WRITE(sc, RTSX_CARD_OE, RTSX_SD_OUTPUT_EN);
 	
@@ -945,7 +952,7 @@ rtsx_save_regs(struct rtsx_softc *sc)
 	i = 0;
 	for (reg = 0xFDA0; reg < 0xFDAE; reg++)
 		(void)rtsx_read(sc, reg, &sc->regs[i++]);
-	for (reg = 0xFD52; reg < 0xFD69; reg++)           
+	for (reg = 0xFD52; reg < 0xFD69; reg++)
 		(void)rtsx_read(sc, reg, &sc->regs[i++]);
 	for (reg = 0xFE20; reg < 0xFE34; reg++)
 		(void)rtsx_read(sc, reg, &sc->regs[i++]);
@@ -1334,17 +1341,16 @@ extern "C" {
 	extern int      tsleep(void *chan, int pri, const char *wmesg, int timo);
 }
 
-
 int
 rtsx_wait_intr(struct rtsx_softc *sc, int mask, int timo)
 {
 	int status;
 	int error = 0;
-	int s;
+	//int s;
 	
 	mask |= RTSX_TRANS_FAIL_INT;
 	
-	s = splsdmmc();
+	status = splsdmmc();
 	status = sc->intr_status & mask;
 	while (status == 0) {
 		if (tsleep(&sc->intr_status, PRIBIO, "rtsxintr", timo)
@@ -1361,7 +1367,7 @@ rtsx_wait_intr(struct rtsx_softc *sc, int mask, int timo)
 	if (!ISSET(sc->flags, RTSX_F_CARD_PRESENT))
 		error = ENODEV;
 	
-	splx(s);
+	splx(status);
 	
 	if (error == 0 && (status & RTSX_TRANS_FAIL_INT))
 		error = EIO;
@@ -1372,13 +1378,19 @@ rtsx_wait_intr(struct rtsx_softc *sc, int mask, int timo)
 void
 rtsx_card_insert(struct rtsx_softc *sc)
 {
+    printf("%s()  ===>\n", __func__);
 	DPRINTF(1, ("%s: card inserted\n", DEVNAME(sc)));
 	
 	sc->flags |= RTSX_F_CARD_PRESENT;
+    //printf("%s() rtsx_led_enable ===>\n", __func__);
 	(void)rtsx_led_enable(sc);
+    //printf("%s() rtsx_led_enable <===\n", __func__);
 	
 	/* Schedule card discovery task. */
+    //printf("%s() sdmmc_needs_discover ===>\n", __func__);
 	sdmmc_needs_discover((struct device *)sc);
+    //printf("%s() sdmmc_needs_discover <===\n", __func__);
+    //printf("%s()  <===\n", __func__);
 }
 
 void
